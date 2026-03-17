@@ -76,7 +76,7 @@ When WAN1 recovers, remove them.
 
 ## Workaround
 
-We wrote an open-source daemon ([ipv6-wan-failover](https://github.com/mackerman/ipv6-wan-failover)) that auto-detects the WAN topology from ip6 rules and routing tables, monitors for WAN failure by polling route table state every 1s, and applies the MASQUERADE rules automatically. It works, but this should be built into UBIOS alongside the existing IPv4 failover logic.
+We wrote an open-source daemon ([ipv6-wan-failover](https://github.com/mattackerman808/ipv6-wan-failover)) that auto-detects the WAN topology from ip6 rules and routing tables, monitors for WAN failure by polling route table state every 1s, and applies the MASQUERADE rules automatically. It works, but this should be built into UBIOS alongside the existing IPv4 failover logic.
 
 ## Environment
 
