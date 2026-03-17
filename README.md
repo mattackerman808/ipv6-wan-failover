@@ -67,7 +67,7 @@ journalctl -u ipv6-wan-failover -f
 
 ## Relationship to fix-ipv6-wan2
 
-[fix-ipv6-wan2](https://github.com/mackerman/fix-ipv6-wan2) handles the **steady-state** problem: ensuring PBR devices and static routes use the correct WAN for IPv6 during normal dual-WAN operation. This project handles the **failover** problem: maintaining IPv6 connectivity when a WAN goes down entirely.
+[fix-ipv6-wan2](https://github.com/mattackerman808/fix-ipv6-wan2) handles the **steady-state** problem: ensuring PBR devices and static routes use the correct WAN for IPv6 during normal dual-WAN operation. This project handles the **failover** problem: maintaining IPv6 connectivity when a WAN goes down entirely.
 
 | | fix-ipv6-wan2 | ipv6-wan-failover |
 |---|---|---|
