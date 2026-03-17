@@ -22,7 +22,7 @@ Devices must wait for their existing addresses to expire and acquire new ones vi
 
 ## What UBIOS Does Today (observed on UniFi OS 4.x)
 
-We captured detailed diagnostic data during a real WAN1 failure event. UBIOS does handle several things correctly:
+I captured detailed diagnostic data during a real WAN1 failure event. UBIOS does handle several things correctly:
 
 - **ip6 rule 32766** (catch-all) switches from `lookup 201.eth9` to `lookup 202.eth8`
 - **Route table 201** is emptied (default route removed)
@@ -54,7 +54,7 @@ On WAN recovery, remove both rules.
 
 This is the IPv6 equivalent of what already happens for IPv4 — the source address is rewritten so the upstream ISP accepts the traffic. LAN devices continue working with their existing IPv6 addresses immediately, with zero downtime beyond the ~18s detection window that already exists for IPv4.
 
-### Concrete example from our network
+### Concrete example from my network
 
 Normal state:
 - WAN1 (eth9) delegates `2600:1700:5451:1cff::/64` to br0
@@ -76,7 +76,7 @@ When WAN1 recovers, remove them.
 
 ## Workaround
 
-We wrote an open-source daemon ([ipv6-wan-failover](https://github.com/mattackerman808/ipv6-wan-failover)) that auto-detects the WAN topology from ip6 rules and routing tables, monitors for WAN failure by polling route table state every 1s, and applies the MASQUERADE rules automatically. It works, but this should be built into UBIOS alongside the existing IPv4 failover logic.
+I wrote an open-source daemon ([ipv6-wan-failover](https://github.com/mattackerman808/ipv6-wan-failover)) that auto-detects the WAN topology from ip6 rules and routing tables, monitors for WAN failure by polling route table state every 1s, and applies the MASQUERADE rules automatically. It works, but this should be built into UBIOS alongside the existing IPv4 failover logic.
 
 ## Environment
 

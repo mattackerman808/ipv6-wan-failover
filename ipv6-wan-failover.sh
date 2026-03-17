@@ -2,6 +2,9 @@
 #
 # ipv6-wan-failover — Automatic IPv6 failover for UDM dual-WAN
 #
+# Copyright (c) 2026 Matthew Ackerman <matt@808.org>
+# Licensed under the MIT License. See LICENSE file for details.
+#
 # Detects WAN failure and applies NAT66/MASQUERADE so LAN devices
 # with addresses from the dead WAN's prefix can route through the
 # surviving WAN.
@@ -367,7 +370,7 @@ run_daemon() {
         if [[ "$new_state" != "normal" ]]; then
             # Use cached bridge mapping — do NOT re-discover here.
             # The dead WAN's PD prefix may already be gone from the
-            # routing table by the time we detect the outage.
+            # routing table by the time the outage is detected.
             local surviving
             surviving=$(find_surviving_wan "$new_state")
             apply_failover "$new_state" "$surviving"

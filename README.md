@@ -25,7 +25,7 @@ The core technique is the same — NAT66/MASQUERADE — but the trigger and scop
 
 ## Phase 1: Diagnostic Data Gathering (current)
 
-Before building the failover script, we need to understand exactly what changes on the UDM during a failover event. The `diagnose-failover.sh` script captures 14 categories of system state.
+Before building the failover script, I need to understand exactly what changes on the UDM during a failover event. The `diagnose-failover.sh` script captures 14 categories of system state.
 
 ### Setup
 
@@ -64,9 +64,9 @@ chmod +x ~/diagnose-failover.sh
     scp -r gateway:/tmp/ipv6-failover-diag/ ./
     ```
 
-### What we're measuring
+### What's being measured
 
-- **Detection signals:** How quickly can we detect WAN failure? (operstate, dpinger, syslog, networkd-dispatcher)
+- **Detection signals:** How quickly can WAN failure be detected? (operstate, dpinger, syslog, networkd-dispatcher)
 - **UBIOS behavior:** Does the catch-all fwmark switch WANs? Do routing tables change?
 - **Prefix delegation survival:** Does the dead WAN's PD get removed or linger?
 - **Connection tracking:** Do existing IPv6 conntrack entries survive?
@@ -83,10 +83,10 @@ chmod +x ~/diagnose-failover.sh
 | `iptables-mangle.txt` | IPv4 failover comparison |
 | `conntrack.txt` | Do IPv6 connections survive failover? |
 | `networkd-dispatcher.txt` | What hooks are available for detection? |
-| `dpinger.txt` | Can we read health data directly? |
+| `dpinger.txt` | Can health data be read directly? |
 | `syslog.txt` | What gets logged and when? |
 | `dhcpv6.txt` | Does DHCPv6 client release the PD? |
-| `dnsmasq-ra.txt` | Can we manipulate RAs to deprecate old prefix? |
+| `dnsmasq-ra.txt` | Can RAs be manipulated to deprecate old prefix? |
 | `ubios-state.txt` | Machine-readable WAN status? |
 | `connectivity.txt` | Actual connectivity per-WAN |
 | `timestamp.txt` | Timing reference |

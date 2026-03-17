@@ -21,7 +21,7 @@ Phase 1 tested all four originally proposed strategies against a real L3 upstrea
 |---|---|---|
 | networkd-dispatcher | **No** | Hook directories empty. operstate never changed, so no-carrier.d never fires. Only useful for physical cable pull, which is the less common failure mode. |
 | operstate polling | **No** | eth9 remained `up` throughout the entire outage. L3 failures (upstream ISP down, modem reachable) don't change operstate. |
-| dpinger socket | **No** | UBIOS reconfigured dpinger to target the modem's private IP (`192.168.1.254`) during the outage. Modem responded fine → dpinger reported "up" while upstream was dead. We don't control dpinger config. |
+| dpinger socket | **No** | UBIOS reconfigured dpinger to target the modem's private IP (`192.168.1.254`) during the outage. Modem responded fine → dpinger reported "up" while upstream was dead. Can't control dpinger config. |
 | **syslog monitoring** | **Yes** | `wf-interface-eth9 is down` fired reliably at 15:12:53. ~1s from syslog write to detection via `tail -F` or `inotifywait`. |
 
 ### Additional detection signal discovered
@@ -49,7 +49,7 @@ Observed behavior from Phase 1 snapshots:
 1. **ip6 rule 32766** switches from `lookup 201.eth9` → `lookup 202.eth8`
 2. **Route table 201** emptied — default route via eth9 removed entirely
 3. **Mangle chain** `UBIOS_WF_GROUP_1_SINGLE` unhooked (0 references, counters zeroed) — new connections don't get eth9's fwmark
-4. **ip6tables NAT** unchanged — **UBIOS does NOT add MASQUERADE for the dead prefix** (this is the gap we fill)
+4. **ip6tables NAT** unchanged — **UBIOS does NOT add MASQUERADE for the dead prefix** (this is the gap to fill)
 5. **Conntrack** entries with old fwmark (`0x1a0000`) persist but are useless — the route table they reference is empty
 6. **PD prefix lingers** on br0 with existing lifetime (~50 min remaining) — never removed, never deprecated via RA
 
@@ -74,7 +74,7 @@ ip6tables -t nat -A POSTROUTING -o eth8 -s 2600:1700:5451:1cff::/64 -j MASQUERAD
 ip -6 rule add from 2600:1700:5451:1cff::/64 lookup 202.eth8 priority 100
 ```
 
-No mangle/fwmark rules needed — UBIOS already unhooks the dead WAN's mangle chain, so we just need a routing rule to direct the dead prefix's traffic to the surviving WAN and MASQUERADE it on the way out.
+No mangle/fwmark rules needed — UBIOS already unhooks the dead WAN's mangle chain, so it just needs a routing rule to direct the dead prefix's traffic to the surviving WAN and MASQUERADE it on the way out.
 
 Key difference from fix-ipv6-wan2: the MASQUERADE source match is the dead WAN's PD prefix (covering all LAN devices) rather than specific MAC addresses.
 
@@ -98,7 +98,7 @@ Phase 1 findings on RA infrastructure:
 - radvd is also present and active
 - The dead prefix continues being advertised — no automatic deprecation
 
-To deprecate the dead prefix, we would need to:
+To deprecate the dead prefix, options include:
 - Inject a zero-lifetime prefix into dnsmasq/radvd config and trigger re-advertisement
 - Or send a raw RA with preferred_lft=0 for the dead prefix using radvadump/ndisc6 tools
 
