@@ -1,0 +1,94 @@
+=== ip6tables -t nat -L -nv --line-numbers ===
+Chain PREROUTING (policy ACCEPT 469K packets, 115M bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     977K  238M UBIOS_PREROUTING_JUMP  all      *      *       ::/0                 ::/0                
+
+Chain INPUT (policy ACCEPT 28291 packets, 8419K bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1    96305   29M UBIOS_INPUT_JUMP  all      *      *       ::/0                 ::/0                
+
+Chain OUTPUT (policy ACCEPT 56867 packets, 4812K bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     204K   17M UBIOS_OUTPUT_JUMP  all      *      *       ::/0                 ::/0                
+
+Chain POSTROUTING (policy ACCEPT 420K packets, 101M bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     943K  210M UBIOS_POSTROUTING_JUMP  all      *      *       ::/0                 ::/0                
+2     5305 4177K MASQUERADE  all      *      eth8    ::/0                 ::/0                 mark match 0x1/0x1
+
+Chain DNSFILTER (0 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain MINIUPNPD (0 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain MINIUPNPD-POSTROUTING (0 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain UBIOS_DNSFILTER_JUMP (0 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain UBIOS_HONEYPOT_NAT (0 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain UBIOS_INPUT_JUMP (1 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain UBIOS_OUTPUT_JUMP (1 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain UBIOS_POSTROUTING_JUMP (1 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     425K  105M UBIOS_POSTROUTING_USER_HOOK  all      *      *       ::/0                 ::/0                
+
+Chain UBIOS_POSTROUTING_USER_HOOK (1 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain UBIOS_PREROUTING_JUMP (1 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     469K  115M UBIOS_PREROUTING_USER_HOOK  all      *      *       ::/0                 ::/0                
+2     469K  115M UBIOS_WF_PRE_JUMP  all      *      *       ::/0                 ::/0                
+
+Chain UBIOS_PREROUTING_USER_HOOK (1 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+
+Chain UBIOS_WF_PRE_JUMP (1 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     3633  282K RETURN     all      eth8   *       ::/0                 ::/0                
+2      483 53880 RETURN     all      eth9   *       ::/0                 ::/0                
+3        0     0 REDIRECT   udp      *      *       ::/0                 ::/0                 udp dpt:53 ADDRTYPE match dst-type LOCAL mark match 0x1c0000/0x7e0000 redir ports 20202
+4        0     0 REDIRECT   tcp      *      *       ::/0                 ::/0                 tcp dpt:53 ADDRTYPE match dst-type LOCAL mark match 0x1c0000/0x7e0000 redir ports 20202
+5        0     0 REDIRECT   udp      *      *       ::/0                 ::/0                 udp dpt:53 ADDRTYPE match dst-type LOCAL mark match 0x1a0000/0x7e0000 redir ports 20201
+6        0     0 REDIRECT   tcp      *      *       ::/0                 ::/0                 tcp dpt:53 ADDRTYPE match dst-type LOCAL mark match 0x1a0000/0x7e0000 redir ports 20201
+
+=== ip6tables -t nat -S ===
+-P PREROUTING ACCEPT
+-P INPUT ACCEPT
+-P OUTPUT ACCEPT
+-P POSTROUTING ACCEPT
+-N DNSFILTER
+-N MINIUPNPD
+-N MINIUPNPD-POSTROUTING
+-N UBIOS_DNSFILTER_JUMP
+-N UBIOS_HONEYPOT_NAT
+-N UBIOS_INPUT_JUMP
+-N UBIOS_OUTPUT_JUMP
+-N UBIOS_POSTROUTING_JUMP
+-N UBIOS_POSTROUTING_USER_HOOK
+-N UBIOS_PREROUTING_JUMP
+-N UBIOS_PREROUTING_USER_HOOK
+-N UBIOS_WF_PRE_JUMP
+-A PREROUTING -j UBIOS_PREROUTING_JUMP
+-A INPUT -j UBIOS_INPUT_JUMP
+-A OUTPUT -j UBIOS_OUTPUT_JUMP
+-A POSTROUTING -j UBIOS_POSTROUTING_JUMP
+-A POSTROUTING -o eth8 -m mark --mark 0x1/0x1 -j MASQUERADE
+-A UBIOS_POSTROUTING_JUMP -j UBIOS_POSTROUTING_USER_HOOK
+-A UBIOS_PREROUTING_JUMP -j UBIOS_PREROUTING_USER_HOOK
+-A UBIOS_PREROUTING_JUMP -j UBIOS_WF_PRE_JUMP
+-A UBIOS_WF_PRE_JUMP -i eth8 -j RETURN
+-A UBIOS_WF_PRE_JUMP -i eth9 -j RETURN
+-A UBIOS_WF_PRE_JUMP -p udp -m udp --dport 53 -m addrtype --dst-type LOCAL -m mark --mark 0x1c0000/0x7e0000 -j REDIRECT --to-ports 20202
+-A UBIOS_WF_PRE_JUMP -p tcp -m tcp --dport 53 -m addrtype --dst-type LOCAL -m mark --mark 0x1c0000/0x7e0000 -j REDIRECT --to-ports 20202
+-A UBIOS_WF_PRE_JUMP -p udp -m udp --dport 53 -m addrtype --dst-type LOCAL -m mark --mark 0x1a0000/0x7e0000 -j REDIRECT --to-ports 20201
+-A UBIOS_WF_PRE_JUMP -p tcp -m tcp --dport 53 -m addrtype --dst-type LOCAL -m mark --mark 0x1a0000/0x7e0000 -j REDIRECT --to-ports 20201

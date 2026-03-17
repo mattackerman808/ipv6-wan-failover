@@ -1,0 +1,13 @@
+[Unit]
+Description=IPv6 WAN Failover (NAT66/MASQUERADE)
+After=network-online.target ubios-udapi-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/data/ipv6-wan-failover/ipv6-wan-failover.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,43 @@
+=== /config/udapi-net/ ===
+ls: cannot access '/config/udapi-net/': No such file or directory
+
+=== WAN status files ===
+
+=== ubios-udapi-server state ===
+--- ubnt-systool wanFailover --status ---
+Ubiquiti system tools, v1.0
+Usage: /sbin/ubnt-systool <command> [<arguments>]
+  supported commands:
+     timezone <newtimezone>
+     hostname <newhostname>
+     network  <networkinterfacefile>
+     network-speed  <networkinterface> <speedmbps>
+     network-speed-init
+     network-llmnr-enable <interface> <true|false>
+     network-fec <interface> <fec>
+     fwupdate <updatefile>
+     fwupdatestatus
+     resetbutton <true|false>
+     sshd <true|false>
+     sshd-authkeys [<new authkey file>]
+     sshd-passwdauth [<true|false>]
+     sshd-port [<port number>]
+     support [<outputfile>]
+     pwcheck
+     chpasswd
+     adminname <newname>
+     adminemail <newemail>
+     reboot
+     poweroff
+     reset2defaults
+     cleanup
+     synctime
+     storage <action> <arg>
+     cputemp
+     sysusermerge <ro-mount>
+     cpuload
+     sshpasswd <action> <arg>
+     sysuser_remap <ro-mount>
+
+=== local API probe ===
+{"error":{"code":401,"message":"Unauthorized"}}

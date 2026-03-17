@@ -1,0 +1,18 @@
+=== iptables -t mangle -L UBIOS_WF_GROUP_1_SINGLE -nv --line-numbers ===
+Chain UBIOS_WF_GROUP_1_SINGLE (0 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 RETURN     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ! state NEW
+2        0     0 RETURN     udp  --  *      *       0.0.0.0/0            0.0.0.0/0            udp dpt:53 ADDRTYPE match dst-type LOCAL
+3        0     0 RETURN     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:53 ADDRTYPE match dst-type LOCAL
+4        0     0 MARK       all  --  *      *       0.0.0.0/0            0.0.0.0/0            mark match 0x0/0x7e0000 prob-name eth9-wf-group-1-single MARK xset 0x1a0000/0x7e0000
+5        0     0 CONNMARK   all  --  *      *       0.0.0.0/0            0.0.0.0/0            mark match ! 0x0/0x7e0000 CONNMARK save mask 0x7e0000
+6        0     0 RETURN     all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+
+=== iptables -t mangle -S UBIOS_WF_GROUP_1_SINGLE ===
+-N UBIOS_WF_GROUP_1_SINGLE
+-A UBIOS_WF_GROUP_1_SINGLE -m state ! --state NEW -j RETURN
+-A UBIOS_WF_GROUP_1_SINGLE -p udp -m udp --dport 53 -m addrtype --dst-type LOCAL -j RETURN
+-A UBIOS_WF_GROUP_1_SINGLE -p tcp -m tcp --dport 53 -m addrtype --dst-type LOCAL -j RETURN
+-A UBIOS_WF_GROUP_1_SINGLE -m mark --mark 0x0/0x7e0000 -m dyn_random --prob-name "eth9-wf-group-1-single" -j MARK --set-xmark 0x1a0000/0x7e0000
+-A UBIOS_WF_GROUP_1_SINGLE -m mark ! --mark 0x0/0x7e0000 -j CONNMARK --save-mark --nfmask 0x7e0000 --ctmask 0x7e0000
+-A UBIOS_WF_GROUP_1_SINGLE -j RETURN

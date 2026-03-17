@@ -1,0 +1,29 @@
+=== ip6tables -t mangle -L UBIOS_WF_GROUP_1_SINGLE -nv --line-numbers ===
+Chain UBIOS_WF_GROUP_1_SINGLE (2 references)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     1760  527K RETURN     all      *      *       ::/0                 ::/0                 ! state NEW
+2        0     0 RETURN     udp      *      *       ::/0                 ::/0                 udp dpt:53 ADDRTYPE match dst-type LOCAL
+3        0     0 RETURN     tcp      *      *       ::/0                 ::/0                 tcp dpt:53 ADDRTYPE match dst-type LOCAL
+4      184 33045 MARK       all      *      *       ::/0                 ::/0                 mark match 0x0/0x7e0000 prob-name eth9-wf-group-1-single MARK xset 0x1a0000/0x7e0000
+5     1279  382K CONNMARK   all      *      *       ::/0                 ::/0                 mark match ! 0x0/0x7e0000 CONNMARK save mask 0x7e0000
+6     1279  382K RETURN     all      *      *       ::/0                 ::/0                
+
+=== ip6tables -t mangle -S UBIOS_WF_GROUP_1_SINGLE ===
+-N UBIOS_WF_GROUP_1_SINGLE
+-A UBIOS_WF_GROUP_1_SINGLE -m state ! --state NEW -j RETURN
+-A UBIOS_WF_GROUP_1_SINGLE -p udp -m udp --dport 53 -m addrtype --dst-type LOCAL -j RETURN
+-A UBIOS_WF_GROUP_1_SINGLE -p tcp -m tcp --dport 53 -m addrtype --dst-type LOCAL -j RETURN
+-A UBIOS_WF_GROUP_1_SINGLE -m mark --mark 0x0/0x7e0000 -m dyn_random --prob-name "eth9-wf-group-1-single" -j MARK --set-xmark 0x1a0000/0x7e0000
+-A UBIOS_WF_GROUP_1_SINGLE -m mark ! --mark 0x0/0x7e0000 -j CONNMARK --save-mark --nfmask 0x7e0000 --ctmask 0x7e0000
+-A UBIOS_WF_GROUP_1_SINGLE -j RETURN
+
+=== ip6tables -t mangle -L PREROUTING -nv --line-numbers ===
+Chain PREROUTING (policy ACCEPT 2234 packets, 755K bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1     176M  544G UBIOS_PREROUTING_JUMP  all      *      *       ::/0                 ::/0                
+2    2280K  227M MARK       all      *      *       ::/0                 ::/0                 MACc4:f7:c1:3b:66:6e MARK xset 0x1c0001/0x7e0001
+
+=== ip6tables -t mangle -L OUTPUT -nv --line-numbers ===
+Chain OUTPUT (policy ACCEPT 808 packets, 156K bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1    5009K 1045M UBIOS_OUTPUT_JUMP  all      *      *       ::/0                 ::/0                
