@@ -4,18 +4,70 @@ Automatic IPv6 failover for UniFi Dream Machine dual-WAN setups.
 
 ## Problem
 
-On a UDM with two WANs, IPv4 failover works instantly because NAT hides the source address — LAN devices keep their RFC1918 addresses regardless of which WAN is active. IPv6 breaks because every LAN device has globally-routable addresses from the active WAN's prefix delegation. When that WAN goes down:
+On a UDM with two WANs, IPv4 failover works instantly because NAT hides the source address — LAN devices keep their RFC 1918 addresses regardless of which WAN is active. IPv6 breaks because every LAN device has globally-routable addresses from the active WAN's prefix delegation. When that WAN goes down:
 
 - Devices still have IPv6 addresses from the dead WAN's prefix
 - Those addresses are not routable through the surviving WAN
 - New addresses require Router Advertisements, which can take 1+ hours
-- All IPv6 connectivity is lost until then
+- **All IPv6 connectivity is lost until then**
+
+UBIOS correctly switches the IPv4 default route and the IPv6 catch-all routing rule, but does not MASQUERADE traffic from the dead WAN's prefix through the surviving WAN.
+
+## How It Works
+
+The daemon auto-detects your WAN topology (interfaces, routing tables, bridge-to-WAN mapping) from `ip -6 rule` and route table state. No configuration needed.
+
+**Detection:** Polls each WAN's routing table every 1 second. When a WAN's table loses its default route, that WAN is down.
+
+**Failover:** Adds two rules so LAN traffic from the dead WAN's prefix routes through the surviving WAN with NAT66:
+
+```bash
+# Route dead-prefix traffic via surviving WAN's table
+ip -6 rule add from <dead_prefix> lookup <surviving_table> priority 50
+
+# Rewrite source address so upstream ISP accepts the traffic
+ip6tables -t nat -A POSTROUTING -o <surviving_wan> -s <dead_prefix> -j MASQUERADE
+```
+
+**Recovery:** Removes both rules when the WAN comes back.
+
+The daemon caches the bridge-to-WAN mapping at startup so it can still apply rules even if the dead WAN's prefix delegation expires during the outage.
+
+## Install
+
+```bash
+# Copy to the gateway (/data/ survives firmware updates)
+ssh gateway 'mkdir -p /data/ipv6-wan-failover'
+scp ipv6-wan-failover.sh gateway:/data/ipv6-wan-failover/
+scp ipv6-wan-failover.service gateway:/etc/systemd/system/
+```
+
+## Usage
+
+```bash
+# Verify auto-detected topology
+/data/ipv6-wan-failover/ipv6-wan-failover.sh --status
+
+# Enable and start
+systemctl daemon-reload
+systemctl enable ipv6-wan-failover
+systemctl start ipv6-wan-failover
+
+# Monitor
+journalctl -u ipv6-wan-failover -f
+
+# Show current state and active rules
+/data/ipv6-wan-failover/ipv6-wan-failover.sh --status
+
+# Manually remove all failover rules
+/data/ipv6-wan-failover/ipv6-wan-failover.sh --remove
+```
+
+**Note:** `/etc/systemd/system/` does not survive firmware updates. After a UDM firmware update, re-copy the service file and re-enable it. The script itself in `/data/` persists.
 
 ## Relationship to fix-ipv6-wan2
 
 [fix-ipv6-wan2](https://github.com/mackerman/fix-ipv6-wan2) handles the **steady-state** problem: ensuring PBR devices and static routes use the correct WAN for IPv6 during normal dual-WAN operation. This project handles the **failover** problem: maintaining IPv6 connectivity when a WAN goes down entirely.
-
-The core technique is the same — NAT66/MASQUERADE — but the trigger and scope differ:
 
 | | fix-ipv6-wan2 | ipv6-wan-failover |
 |---|---|---|
@@ -23,78 +75,6 @@ The core technique is the same — NAT66/MASQUERADE — but the trigger and scop
 | **Scope** | Specific PBR devices + static routes | All LAN devices using the dead prefix |
 | **MASQUERADE** | PBR MACs through WAN2 | All dead-prefix traffic through surviving WAN |
 
-## Phase 1: Diagnostic Data Gathering (current)
+## License
 
-Before building the failover script, I need to understand exactly what changes on the UDM during a failover event. The `diagnose-failover.sh` script captures 14 categories of system state.
-
-### Setup
-
-```bash
-scp diagnose-failover.sh gateway:~/
-ssh gateway
-chmod +x ~/diagnose-failover.sh
-```
-
-### Workflow
-
-1. Open two SSH sessions to the gateway
-2. **Terminal 1:** Capture baseline state:
-   ```bash
-   ./diagnose-failover.sh baseline
-   ```
-3. **Terminal 1:** Start the continuous monitor:
-   ```bash
-   ./diagnose-failover.sh --monitor
-   ```
-4. **Terminal 2:** Trigger WAN1 failure (unplug cable or disable in UI)
-5. Wait ~60s for IPv4 failover to complete
-6. **Terminal 2:** Capture mid-failover state:
-   ```bash
-   ./diagnose-failover.sh during
-   ```
-7. Restore WAN1 (plug cable back in or re-enable)
-8. Wait for failback to complete
-9. **Terminal 2:** Capture post-recovery state:
-   ```bash
-   ./diagnose-failover.sh after
-   ```
-10. **Terminal 1:** Ctrl-C to stop the monitor
-11. Copy all data off the gateway:
-    ```bash
-    scp -r gateway:/tmp/ipv6-failover-diag/ ./
-    ```
-
-### What's being measured
-
-- **Detection signals:** How quickly can WAN failure be detected? (operstate, dpinger, syslog, networkd-dispatcher)
-- **UBIOS behavior:** Does the catch-all fwmark switch WANs? Do routing tables change?
-- **Prefix delegation survival:** Does the dead WAN's PD get removed or linger?
-- **Connection tracking:** Do existing IPv6 conntrack entries survive?
-- **Timing:** How fast do various signals fire relative to the actual failure?
-
-### Captured data (14 files per snapshot)
-
-| File | What it answers |
-|------|----------------|
-| `interfaces.txt` | Do addresses get removed? Interface state changes? |
-| `routes.txt` | Does default route change? Do WAN tables get modified? |
-| `ip6tables-mangle.txt` | Does the catch-all fwmark switch WANs during failover? |
-| `ip6tables-nat.txt` | Existing NAT state |
-| `iptables-mangle.txt` | IPv4 failover comparison |
-| `conntrack.txt` | Do IPv6 connections survive failover? |
-| `networkd-dispatcher.txt` | What hooks are available for detection? |
-| `dpinger.txt` | Can health data be read directly? |
-| `syslog.txt` | What gets logged and when? |
-| `dhcpv6.txt` | Does DHCPv6 client release the PD? |
-| `dnsmasq-ra.txt` | Can RAs be manipulated to deprecate old prefix? |
-| `ubios-state.txt` | Machine-readable WAN status? |
-| `connectivity.txt` | Actual connectivity per-WAN |
-| `timestamp.txt` | Timing reference |
-
-## Phase 2: Automatic Failover (planned)
-
-See [DESIGN.md](DESIGN.md) for the planned architecture. The failover daemon will:
-- Detect WAN failure (fastest available signal)
-- MASQUERADE all traffic from the dead prefix through the surviving WAN
-- Remove MASQUERADE on WAN recovery
-- Coexist with fix-ipv6-wan2
+MIT License. See [LICENSE](LICENSE) for details.
